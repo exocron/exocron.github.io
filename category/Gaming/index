@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Category Archives: Gaming | flag=YOU_DIDNT_READ_THE_TITLE</title>
+  <meta name="description" content="This is my blog. There are many like it, but this one is mine.">
+
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700,700italic' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/blog.css">
+  <link rel="canonical" href="https://www.exocron.me/category/Gaming/">
+  <link rel="alternate" type="application/rss+xml" title="exocron" href="https://www.exocron.me/feed.xml" />
+</head>
+
+
+  <body>
+
+    <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        
+          <li><a href="/">Home</a></li>
+        
+        
+          <li><a href="/ctf">CTF</a></li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+    <div class="container">
+      <h1>exocron</h1>
+      <p>This is my blog. There are many like it, but this one is mine.</p>
+
+      <div class="row">
+        <div class="col-sm-9">
+  
+  <h2 class="post-title">Category Archives: Gaming</h2>
+  
+  <div class="home">
+  
+  <div class="entry">
+    <h3><a href="/2013/06/my-thoughts-on-ps4-xbox-one-drm/">My Thoughts on PS4/Xbox One/DRM</a></h3>
+    <p>Jun 23, 2013</p>
+    <p>Well, I needed a break from massive amounts of cramming, so I thought I’d rant a little about what happened at E3, and how people reacted to it. This is really just a way of replying to many of the opinions I’ve seen on the internet over the past few days, and why I think they’re wrong. Let’s start with this:</p>
+
+
+    <a href="/2013/06/my-thoughts-on-ps4-xbox-one-drm/">Read More &raquo;</a>
+  </div>
+  
+</div>
+
+</div>
+
+<div class="col-sm-3">
+  <div class="well well-sm well-sidebar">
+    <h4>About</h4>
+    <p>I'm a programmer. I also enjoy reverse-engineering and I'm focused on information security. Hobbies include but are not limited to video games, laser tag, hardware hacking, comics, and Futurama. I live in the internet.
+</p>
+  </div>
+  <h4>Archives</h4>
+  <ul>
+    
+    <li><a href="/2014/05">May 2014</a></li>
+    
+    <li><a href="/2013/07">July 2013</a></li>
+    
+    <li><a href="/2013/06">June 2013</a></li>
+    
+  </ul>
+  <h4>Categories</h4>
+  <ul>
+    
+    <li><a href="/category/Uncategorized">Uncategorized</a></li>
+    
+    <li><a href="/category/Gaming">Gaming</a></li>
+    
+    <li><a href="/category/Power User">Power User</a></li>
+    
+    <li><a href="/category/Network Administration">Network Administration</a></li>
+    
+    <li><a href="/category/CTF">CTF</a></li>
+    
+    <li><a href="/category/webOS">webOS</a></li>
+    
+  </ul>
+  <h4>RSS Feeds</h4>
+  <ul>
+    <li><a href="/feed.xml">All posts</a></li>
+  </ul>
+  <h4>Meta</h4>
+  <ul>
+    <li><a href="/wp-login.php">DO NOT CLICK!</a></li>
+  </ul>
+</div>
+
+
+      </div>
+    </div>
+
+    <hr>
+
+<div class="container">
+  <div class="row footer">
+    &lt;/exocron&gt;
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

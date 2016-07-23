@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Open webOS Chronicles, Part 1: Building | flag=YOU_DIDNT_READ_THE_TITLE</title>
+  <meta name="description" content="Open webOS Chronicles: The Horrors of Building, Installing, and Using Open webOS">
+
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700,700italic' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/blog.css">
+  <link rel="canonical" href="https://www.exocron.me/2014/05/open-webos-chronicles-part-1-building/">
+  <link rel="alternate" type="application/rss+xml" title="exocron" href="https://www.exocron.me/feed.xml" />
+</head>
+
+
+  <body>
+
+    <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        
+          <li><a href="/">Home</a></li>
+        
+        
+          <li><a href="/ctf">CTF</a></li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+    <div class="container">
+      <h1>exocron</h1>
+      <p>This is my blog. There are many like it, but this one is mine.</p>
+
+      <div class="row">
+        <div class="col-sm-9">
+  <h2 class="post-title">Open webOS Chronicles, Part 1: Building</h2>
+  <p class="post-meta">May 9, 2014</p>
+  <p>Open webOS Chronicles: The Horrors of Building, Installing, and Using Open webOS</p>
+
+<p>Part 1: Building (Desktop and OpenEmbedded)</p>
+
+<p><em>(Editor’s note: Just so you don’t think this series of posts is nothing but me whining about not being able to build Open webOS, let me tell you this: at this time, I have the emulator image running natively as a second partition on my laptop, and it’s semi-usable. Over the course of this series, I will try to describe every problem I encountered and how I was able to overcome it.)</em></p>
+
+<p>It all started when I found my old HP TouchPad. Believing it to be bricked, I brought it into work where I thought we might be able to take it apart and JTAG it or otherwise mess around with the insides, only to see a co-worker using it after charging it for a day and a half. Needless to say, I started using it again, and quickly fell in love (again) with the iconic operating system, webOS.</p>
+
+<p><img src="/assets/home.png" alt="I&rsquo;m sorry, my love. I&rsquo;ll never leave you again, I swear!" /></p>
+
+<p>In particular, one of my favorite apps is <a href="http://www.webosnation.com/quick-app-flixi">Flixi</a>, an Exhibition app that lets you split the screen into different layouts and choose a feed for each cell. I don’t know who said it (it very well could have been me), but someone said, “This would be a cool app to run on a projector!” I then realized that, even though the TouchPad does not have TV output, I could possibly run the app on a build of Open webOS.</p>
+
+<p>Thus, my journey of pain had begun.</p>
+
+<p>At the time, my laptop was running the now outdated Ubuntu 13.04. With it’s support period over, I backed up all the data, wiped it clean, and installed Ubuntu 12.04 64-bit, as it’s listed <a href="https://github.com/openwebos/build-desktop">here</a> as one of the supported build platforms.</p>
+
+<p>Once installed, I decided to build the desktop version of Open webOS. (The desktop version runs inside of another linux distribution. The UI, apparently developed with Qt, runs inside of an X window.) I followed the instructions on the <a href="https://github.com/openwebos/build-desktop">README</a> to the letter, and was excited to see the build succeed without errors! But, when I ran Luna, I was greeted with this window:</p>
+
+<p><img src="/assets/64bit.png" alt="...that&rsquo;s it?" /></p>
+
+<p><em>Okay</em>, I thought to my self, <em>the desktop build is obviously broken. Let’s try the OpenEmbedded one.</em> So I followed the instructions on <a href="https://github.com/openwebos/build-webos">this page</a> and started the build for the qemu image. This build process is like 2-3 times longer than the desktop one, so I ran it overnight. In the morning, I’m once again excited to see the build complete without errors. But when I go to run it, the guest immediately kernel panics. Great. But then I noticed something about the qemu command: it’s using <a href="http://www.linux-kvm.org/page/Main_Page">KVM</a>. So, I removed the KVM option, and then the VM booted! But, once again, I am disappointed by services spewing endless logs of text, and no UI ever appearing.</p>
+
+<p>After a good night’s sleep, I came up with a brilliant idea: <em>Why not try the 32-bit version of Ubuntu?</em> In a perfect world, it shouldn’t matter if you’re building on a 32-bit host OS, or a 64-bit one. But, regardless, I decided to give it a try. So, after spending the day installing Ubuntu (again) and building for the desktop (again), I was pleasantly surprised to see everything render correctly.</p>
+
+<p><img src="/assets/32bit.png" alt="Schweet..." /></p>
+
+<p>A sane person would probably stop here. But I decided that the titlebar and on-screen home button were too much. This had to be all or nothing. I decided that, if I could build the qemu image, I could probably tweak it to run on physical hardware and run it on a second partition on my laptop. So, I cloned the OpenEmbedded repository and started the build, but this time, I got an error:</p>
+
+<pre class="prettyprint lang-sh">
+fatal: reference is not a tree: dea813980f4195503d82b8295f742a4da1df8d93
+</pre>
+
+<p>So, it looks like one of the git submodules is not up to date. Google searching the hash finds two results (well, maybe three now :) ), both referring to the libpalmsocket library. Luckily, replacing the hash with the latest (at the time) master allowed the build to continue, and didn’t seem to have any side-effects on the final product:</p>
+
+<pre class="prettyprint lang-sh">
+$ sed -i 's/dea813980f4195503d82b8295f742a4da1df8d93/9533a7c46f8d35e69112a8c5e671532d059b2e8d/g' meta-webos/recipes-webos/libpalmsocket/libpalmsocket.bb
+$ sed -i 's/dea813980f4195503d82b8295f742a4da1df8d93/9533a7c46f8d35e69112a8c5e671532d059b2e8d/g' buildhistory/packages/qemux86-webos-linux/libpalmsocket/latest_srcrev
+</pre>
+
+<p>After that, there were no more errors, but once again, when I went to run the image, there was nothing but endless novacomd output.</p>
+
+<p>In the next post, I’ll describe how I got the (not fully working) qemu image running on actual hardware, and how I logged in and started the graphical system. In the meantime, however, I’ll wonder why I didn’t just make a Flixi clone for HTML5.</p>
+
+<div class="comments">
+<h4>Archived Comments:</h4>
+<hr />
+<div class="media">
+  <div class="media-left">
+    <div class="media-object">
+      <img class="media-object" src="https://1.gravatar.com/avatar/a17f5e77bdfeda5bcad2af8b96d8581c" />
+    </div>
+  </div>
+  <div class="media-body">
+    <h4 class="media-heading">Eric Blade</h4>
+    <p>I, for one, would appreciate hearing about the problems, and the fixes if you have them. We might be able to get them incorporated. There may be some bit-rot there in the Open components, as the IRC #webOS-Ports team is working on a vastly different OE build system, and LG is spending a lot of time busily working on TV webOS...</p>
+    <div class="media">
+      <div class="media-left">
+        <img class="media-object" src="https://pbs.twimg.com/profile_images/378800000305683428/6d7f194734287cd3997411ef51088842_400x400.jpeg" />
+      </div>
+      <div class="media-body">
+        <h4 class="media-heading">exocron</h4>
+        <p>Sorry about the long response time, I don&rsquo;t get around to checking comments ofter because they&rsquo;re usually all spam. It&rsquo;s great to hear from someone in the community. It&rsquo;s been a busy couple of weeks, but I&rsquo;ll try to get everything else written up soon. I think the biggest things were LunaSysMgr not starting up automatically for whatever reason (I just start it manually now), and not being able to log in as root from the console (I created another user in the root group and su to root). Everything else surfaced from trying to run the QEMU image on physical hardware, ex: I had to replace the kernel, and I had to remove the --connect-ip argument from novacomd, etc. But anyways, I&rsquo;m rambling; I&rsquo;ll try to have the problems and fixes up soon.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?lang=sh&amp;skin=sons-of-obsidian"></script>
+
+
+</div>
+
+<div class="col-sm-3">
+  <div class="well well-sm well-sidebar">
+    <h4>About</h4>
+    <p>I'm a programmer. I also enjoy reverse-engineering and I'm focused on information security. Hobbies include but are not limited to video games, laser tag, hardware hacking, comics, and Futurama. I live in the internet.
+</p>
+  </div>
+  <h4>Archives</h4>
+  <ul>
+    
+    <li><a href="/2014/05">May 2014</a></li>
+    
+    <li><a href="/2013/07">July 2013</a></li>
+    
+    <li><a href="/2013/06">June 2013</a></li>
+    
+  </ul>
+  <h4>Categories</h4>
+  <ul>
+    
+    <li><a href="/category/Uncategorized">Uncategorized</a></li>
+    
+    <li><a href="/category/Gaming">Gaming</a></li>
+    
+    <li><a href="/category/Power User">Power User</a></li>
+    
+    <li><a href="/category/Network Administration">Network Administration</a></li>
+    
+    <li><a href="/category/CTF">CTF</a></li>
+    
+    <li><a href="/category/webOS">webOS</a></li>
+    
+  </ul>
+  <h4>RSS Feeds</h4>
+  <ul>
+    <li><a href="/feed.xml">All posts</a></li>
+  </ul>
+  <h4>Meta</h4>
+  <ul>
+    <li><a href="/wp-login.php">DO NOT CLICK!</a></li>
+  </ul>
+</div>
+
+
+      </div>
+    </div>
+
+    <hr>
+
+<div class="container">
+  <div class="row footer">
+    &lt;/exocron&gt;
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Windows, Y U NO RESOLVE DNS | flag=YOU_DIDNT_READ_THE_TITLE</title>
+  <meta name="description" content="This past weekend, I had some time to kill, so I decided to augment my DHCP server with a little DNS. I had been using a dedicated DHCP server for a while, j...">
+
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700,700italic' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/blog.css">
+  <link rel="canonical" href="https://www.exocron.me/2013/07/windows-y-u-no-resolve-dns/">
+  <link rel="alternate" type="application/rss+xml" title="exocron" href="https://www.exocron.me/feed.xml" />
+</head>
+
+
+  <body>
+
+    <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        
+          <li><a href="/">Home</a></li>
+        
+        
+          <li><a href="/ctf">CTF</a></li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+    <div class="container">
+      <h1>exocron</h1>
+      <p>This is my blog. There are many like it, but this one is mine.</p>
+
+      <div class="row">
+        <div class="col-sm-9">
+  <h2 class="post-title">Windows, Y U NO RESOLVE DNS</h2>
+  <p class="post-meta">Jul 23, 2013</p>
+  <p>This past weekend, I had some time to kill, so I decided to augment my DHCP server with a little DNS. I had been using a dedicated DHCP server for a while, just for kicks (and for learning dhcpd). A few of my machines already had fixed addresses in the dhcpd.conf for ease of access, so I thought the next step would be to add DNS entries. After all, nothing says awesome like typing “ssh laptop” and it working.</p>
+
+<p>Fortunately, bind9’s default configuration (on Debian) forwards DNS requests for non-authoritative zones by default, so fifteen-minutes and a few whiskey sours later (if you can understand that config file format <em>without</em> a few drinks in you, you’re amazing), I had the configuration worked out and was resolving local network host names like a pro. I ssh’d into all of my servers, and life was good.</p>
+
+<p>Until I booted Windows.</p>
+
+<p><img src="/assets/ping-redbase.png" alt="" /></p>
+
+<p>Ugh. What is going on?</p>
+
+<p>I fired up nslookup and typed in “redbase”. It couldn’t find the IP address. Remembering what little I know about FQDN’s, I then tried “redbase.” (with the period). Sure enough, it worked.</p>
+
+<p>This is kind of strange since “ping redbase” and “nslookup redbase” worked in Linux, without the dot. Well, ipconfig says that my connection-specific DNS suffix is example.org (lol). On a hunch, I fired up Wireshark.</p>
+
+<p><img src="/assets/redbase.example.org_.png" alt="Well, lookey here..." /></p>
+
+<p>Sure enough, “nslookup redbase” causes Windows to try and resolve redbase.example.org. Maybe this is a good thing, I don’t know. From what I read online, the desired behavior is for a client to try “redbase.” first, then try “redbase.example.org.”. I guess Windows assumes that there won’t be any single-label DNS entries, although there doesn’t appear to be a rule against them. Typical nonstandard behavior. There’s a group policy behavior called “Allow DNS Suffix Appending to Unqualified Multi-Label Name Queries” (could that name be any longer?) that allows you to disable appending the connection-specific DNS, but I’m running Home Premium, so I don’t have Group Policy Editor. Figures. I found this <a href="http://gpsearch.azurewebsites.net/">awesome site</a> that converts group policies to registry keys; in this case, the key is “HKLM\Software\Policies\Microsoft\Windows NT\DNSClient” (UseDomainNameDevolution: DWORD). There’s only one problem: it doesn’t work. I chalked this up as caused by Home Premium as well.</p>
+
+<p>So, for my final straw, I opened up dhcpd.conf and changed the connection-specific DNS from “example.org” to “.”. I renewed my DHCP, and sure enough…</p>
+
+<p><img src="/assets/nslookup-redbase.png" alt="" /></p>
+
+<p>Yes. Finally. Now, a final ping to put the nail in the coffin.</p>
+
+<p><img src="/assets/ping-redbase-2.png" alt="" /></p>
+
+<p>What? WHAT?!?! No. What is this, I don’t even. Go go Wireshark!</p>
+
+<p><img src="/assets/llmnr.png" alt="" /></p>
+
+<p>Okay, so apparently ping, my web browser, and practically everything else only tries to resolve a LLMNR request. It doesn’t even <em>try</em> DNS! What the heck is up with that?</p>
+
+<p>Interestingly enough, though, while msys SSH didn’t work at all when my suffix was example.org, it’s totally working now for “redbase”, even without the period. What the heck.</p>
+
+<p>Windows can’t DNS. Well.</p>
+
+</div>
+
+<div class="col-sm-3">
+  <div class="well well-sm well-sidebar">
+    <h4>About</h4>
+    <p>I'm a programmer. I also enjoy reverse-engineering and I'm focused on information security. Hobbies include but are not limited to video games, laser tag, hardware hacking, comics, and Futurama. I live in the internet.
+</p>
+  </div>
+  <h4>Archives</h4>
+  <ul>
+    
+    <li><a href="/2014/05">May 2014</a></li>
+    
+    <li><a href="/2013/07">July 2013</a></li>
+    
+    <li><a href="/2013/06">June 2013</a></li>
+    
+  </ul>
+  <h4>Categories</h4>
+  <ul>
+    
+    <li><a href="/category/Uncategorized">Uncategorized</a></li>
+    
+    <li><a href="/category/Gaming">Gaming</a></li>
+    
+    <li><a href="/category/Power User">Power User</a></li>
+    
+    <li><a href="/category/Network Administration">Network Administration</a></li>
+    
+    <li><a href="/category/CTF">CTF</a></li>
+    
+    <li><a href="/category/webOS">webOS</a></li>
+    
+  </ul>
+  <h4>RSS Feeds</h4>
+  <ul>
+    <li><a href="/feed.xml">All posts</a></li>
+  </ul>
+  <h4>Meta</h4>
+  <ul>
+    <li><a href="/wp-login.php">DO NOT CLICK!</a></li>
+  </ul>
+</div>
+
+
+      </div>
+    </div>
+
+    <hr>
+
+<div class="container">
+  <div class="row footer">
+    &lt;/exocron&gt;
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

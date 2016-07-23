@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>BSides Chicago CTF 2014: Things You Find on the Internet | flag=YOU_DIDNT_READ_THE_TITLE</title>
+  <meta name="description" content="I’ve been tasked with providing a writeup for this challenge, since nobody was able to solve it, it seems. The funny thing about CTF challenges is that they ...">
+
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700,700italic' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/blog.css">
+  <link rel="canonical" href="https://www.exocron.me/2014/05/bsides-chicago-ctf-2014-things-you-find-on-the-internet/">
+  <link rel="alternate" type="application/rss+xml" title="exocron" href="https://www.exocron.me/feed.xml" />
+</head>
+
+
+  <body>
+
+    <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        
+          <li><a href="/">Home</a></li>
+        
+        
+          <li><a href="/ctf">CTF</a></li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+    <div class="container">
+      <h1>exocron</h1>
+      <p>This is my blog. There are many like it, but this one is mine.</p>
+
+      <div class="row">
+        <div class="col-sm-9">
+  <h2 class="post-title">BSides Chicago CTF 2014: Things You Find on the Internet</h2>
+  <p class="post-meta">May 5, 2014</p>
+  <p>I’ve been tasked with providing a writeup for this challenge, since nobody was able to solve it, it seems. The funny thing about CTF challenges is that they always turn out to be more difficult than anticipated (at least, in my experience). That could be a topic for a whole other blog post. But for now, the challenge.</p>
+
+<p>At the end of BSides Chicago, I went up on stage and said, <input id="spoiler1" name="spoiler1" type="radio" class="hide" /><label for="spoiler1" class="spoiler">“the CRC of the entire data payload must be DEADBEEF”</label>. If you would like to try the challenge again, with just that knowledge, you can grap the PCAP file <a href="/assets/network.pcap">here</a>. The server is still up, for now, but I may kill it if it starts to cost me too much money (in other words, do it sooner rather than later). If you are going to take another stab at it, you should probably stop reading…now.</p>
+
+<p>Okay, so you’ve resigned yourself to defeat, and want to see the answer :P (I kid, I kid). I’ll be writing this walkthrough in a player point-of-view, as opposed to an author point-of-view. So without further ado, let’s get to the challenge!</p>
+
+<h3 id="the-challenge">The Challenge</h3>
+
+<blockquote>
+  <p>BEGIN TRANSMISSION</p>
+
+  <p>TARGET: Unknown
+LOCATION: Unknown ()</p>
+
+  <p>DETAILS:</p>
+
+  <p>We have received the attached pcap file from an unknown source. We are not sure if we should trust this, but what the heck. We are just like Q who put a hackers laptop on their primary network.</p>
+
+  <p>We need you to analyze the traffic and infiltrate the server. You may need to strip some null bytes off of any information you gather.</p>
+
+  <p>This will not be a flag=. You will know the flag when you see it.</p>
+
+  <p>The file is attached.</p>
+
+  <p>Good luck agent!</p>
+
+  <p>END TRANSMISSION</p>
+</blockquote>
+
+<p><a href="https://bsjtf.com/download.php?id=25">File</a> (<a href="/assets/network.pcap">mirror</a>)</p>
+
+<p>The file is a packet capture of a TCP session where a computer with a Class C private IP connects to 166.78.113.11 port 1337. Here is a hexdump of the entire conversation:</p>
+
+<p><img src="/assets/shot-2014-05-04_20-46-03.png" alt="That&rsquo;s...not my real password...*runs to nearest computer*" /></p>
+
+<p>Wireshark doesn’t detect any application layer protocols, so it’s safe to assume this is a proprietary protocol created just for the challenge. Based on this dump, this communication appears to be packet based, where each outgoing packet is structured like so:</p>
+
+<div class="well well-sm" style="margin-bottom: 10px;">
+4 bytes (verb) || 4 bytes (unknown) || <a href="http://en.wikipedia.org/wiki/Pascal_string#Length-prefixed">Pascal string</a> (argument)
+</div>
+
+<p>and each incoming packet is similar (though some have slight differences).</p>
+
+<p>At this point, I have saved the contents of the four outgoing packets into files named packet1.bin through packet4.bin. Also, I found that netcat works perfectly fine when sending one packet, but when trying to send all four, I could only see the response from the first one:</p>
+
+<pre class="prettyprint lang-sh">
+$ cat packet1.bin | nc -q -1 166.78.113.11 1337 | xxd -g 1 -u
+0000000: 4F 4B 41 59 81 BA 0D 63 46 41 49 4C 80 A2 6C 66  OKAY...cFAIL..lf
+0000010: 07 54 69 6D 65 6F 75 74                          .Timeout
+$ cat packet1.bin packet2.bin packet3.bin packet4.bin | nc -q -1 166.78.113.11 1337 | xxd -g 1 -u
+0000000: 4F 4B 41 59 81 BA 0D 63 46 41 49 4C 80 A2 6C 66  OKAY...cFAIL..lf
+0000010: 07 54 69 6D 65 6F 75 74                          .Timeout
+</pre>
+
+<p>I coded up a simple Python script that could send packets via Python’s <a href="https://twistedmatrix.com/trac/">Twisted</a> library:</p>
+
+<pre class="prettyprint linenums lang-python">
+from twisted.internet import protocol, reactor
+from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
+from twisted.internet.error import ReactorNotRunning
+import sys
+
+class Client(protocol.Protocol):
+    def sendMessage(self, msg):
+        print "Sent data: %s" % repr(msg)
+        self.transport.write(msg)
+
+    def dataReceived(self, data):
+        print "Received data: %s" % repr(data)
+
+    def connectionLost(self, reason):
+        try:
+            reactor.stop()
+            print "Connection closed by remote host."
+        except ReactorNotRunning:
+            print "Interrupt caught. Closing connection..."
+            pass
+
+def gotProtocol(p):
+    args = sys.argv [1:] 
+    for i in xrange(len(args)):
+        with open(args [i] , "rb") as f:
+            reactor.callLater(i, p.sendMessage, f.read())
+
+endpoint = TCP4ClientEndpoint(reactor, "166.78.113.11", 1337)
+d = connectProtocol(endpoint, Client())
+d.addCallback(gotProtocol)
+reactor.run()
+</pre>
+
+<p>which I can invoke like this:</p>
+
+<pre class="prettyprint lang-sh">
+$ python2 client.py packet1.bin packet2.bin packet3.bin packet4.bin
+Sent data: 'USER-\xb8\x14Z\x07exocron'
+Received data: 'OKAY\x81\xba\rc'
+Sent data: 'PASS\x80\xc2\xecP\x0bitsherotime'
+Received data: 'OKAY\x81\xba\rc'
+Sent data: 'LIST\x98rm\xbf\x01/'
+Received data: 'OKAY\x14\xb69\xfd\x02\x07key.txt\x10stuff i like.txt'
+Sent data: 'READ\xcb\x9d\x81\xbb\x10stuff i like.txt'
+Received data: 'OKAY\xca\xa1\xaf\xa4UStuff I Like:\n* Programming\n* InfoSec (of course!)\n* Video Games\n* Laser Tag\n* Anime\n'
+Received data: 'FAIL\x80\xa2lf\x07Timeout'
+Connection closed by remote host.
+</pre>
+
+<p>Much better. Now we can move on.</p>
+
+<h3 id="keytxt">key.txt</h3>
+
+<p>You probably already noticed, but in the third server response, we can see two filenames: “stuff i like.txt” and “key.txt”. (In)conveniently enough, the packet capture shows the contents of “stuff i like.txt”. Since we already replayed the capture, now’s the time to start fuzzing. I simply modified the contents of packet4.bin with a hex editor, the results of which you can see here:</p>
+
+<pre class="prettyprint lang-sh">
+$ xxd -g 1 -u packet4.bin
+0000000: 52 45 41 44 CB 9D 81 BB 10 73 74 75 66 66 20 69  READ.....stuff i
+0000010: 20 6C 69 6B 65 2E 74 78 74                        like.txt
+$ hexedit packet4.bin
+$ xxd -g 1 -u packet4.bin
+0000000: 52 45 41 44 CB 9D 81 BB 07 6B 65 79 2E 74 78 74  READ.....key.txt
+</pre>
+
+<p>Running the Python script again results in this:</p>
+
+<pre class="prettyprint lang-sh">
+$ python2 client2.py packet1.bin packet2.bin packet3.bin packet4.bin
+Sent data: 'USER-\xb8\x14Z\x07exocron'
+Received data: 'OKAY\x81\xba\rc'
+Sent data: 'PASS\x80\xc2\xecP\x0bitsherotime'
+Received data: 'OKAY\x81\xba\rc'
+Sent data: 'LIST\x98rm\xbf\x01/'
+Received data: 'OKAY\x14\xb69\xfd\x02\x07key.txt\x10stuff i like.txt'
+Sent data: 'READ\xcb\x9d\x81\xbb\x07key.txt'
+Received data: 'FAIL\x81vG*\rIncorrect CRC'
+Connection closed by remote host.
+</pre>
+
+<p>Aha! Incorrect CRC! That gives us a meaning to the four unknown bytes in the packet. But wait…those bytes don’t look like the CRC32 of any combination of the data before and after it. Also, a CRC doesn’t normally go in the middle of a packet.</p>
+
+<h3 id="incorrect-crc">Incorrect CRC</h3>
+
+<blockquote class="twitter-tweet" lang="en"><p> CRC Forging is neat. Interesting tools out there.  <a href="https://twitter.com/search?q=%23tricityctf&#038;src=hash"> #tricityctf </a>   <a href="https://twitter.com/search?q=%23BSidesChicago&#038;src=hash"> #BSidesChicago </a> </p>
+<p> Joint Task Force (@bsjtf)  <a href="https://twitter.com/bsjtf/statuses/460171277303824384"> April 26, 2014 </a>  </p></blockquote>
+<blockquote class="twitter-tweet" lang="en"><p> CRC all the things!</p>
+<p> Joint Task Force (@bsjtf)  <a href="https://twitter.com/bsjtf/statuses/460182831101009920"> April 26, 2014 </a>  </p></blockquote>
+<blockquote class="twitter-tweet" lang="en"><p> CRC is standard CRC32&#8230;</p>
+<p> Joint Task Force (@bsjtf)  <a href="https://twitter.com/bsjtf/statuses/460188006079422464"> April 26, 2014 </a>  </p></blockquote>
+
+<p>According to the hints, we aren’t dealing with anything too severe like custom polynomials. And the first search result for “CRC forging” is <a href="http://blog.stalkr.net/2011/03/crc-32-forging.html">this page</a>, which opens with the text, “You may already know that the CRC-32 of any text can be forged if you can add 4 bytes anywhere in the text.” That’s exactly what we have, four unknown bytes between the action and the argument! So perhaps the CRC being checked is the CRC of the entire payload (“CRC all the things!”):</p>
+
+<pre class="prettyprint lang-python">
+$ cat checkcrc.py
+import sys, zlib
+
+for x in sys.argv [1:] :
+        with open(x, "rb") as f:
+                print(hex(zlib.crc32(f.read())))
+$ python3 checkcrc.py packet1.bin packet2.bin packet3.bin packet4.bin
+0xdeadbeef
+0xdeadbeef
+0xdeadbeef
+0x87eb2127
+</pre>
+
+<p>There we go. The CRC of the first three packets is DEADBEEF. The fourth packet’s CRC is now incorrect, and needs to be fixed. With the script from StalkR’s blog saved to “crc32.py”, we can import and use it like so:</p>
+
+<pre class="prettyprint lang-python">
+$ python2
+Python 2.7.6 (default, Feb 26 2014, 12:07:17)
+ [GCC 4.8.2 20140206 (prerelease)]  on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; import crc32
+&gt;&gt;&gt; crc32.forge(0xdeadbeef, "READ\x07key.txt", 4)
+'READ,\xda\xe1\xe8\x07key.txt'
+</pre>
+
+<p>The bytes we need are 2C DA E1 E8. After hex-editing the final packet:</p>
+
+<pre class="prettyprint lang-sh">
+$ xxd -g 1 -u packet4.bin
+0000000: 52 45 41 44 2C DA E1 E8 07 6B 65 79 2E 74 78 74  READ,....key.txt
+$ python2 client.py packet1.bin packet2.bin packet3.bin packet4.bin
+Sent data: 'USER-\xb8\x14Z\x07exocron'
+Received data: 'OKAY\x81\xba\rc'
+Sent data: 'PASS\x80\xc2\xecP\x0bitsherotime'
+Received data: 'OKAY\x81\xba\rc'
+Sent data: 'LIST\x98rm\xbf\x01/'
+Received data: 'OKAY\x14\xb69\xfd\x02\x07key.txt\x10stuff i like.txt'
+Sent data: 'READ,\xda\xe1\xe8\x07key.txt'
+Received data: 'OKAY\x91\xdfl\xb9\x1dhttp://pastebin.com/iX94M2VV\n'
+Received data: 'FAIL\x80\xa2lf\x07Timeout'
+Connection closed by remote host.
+</pre>
+
+<h3 id="pastebin">Pastebin</h3>
+
+<p>The <a href="http://pastebin.com/iX94M2VV">pastebin URL</a> contains these contents:</p>
+
+<pre class="prettyprint lang-sh">
+Ghetto Anti-Network Capture Protection:
+
+Use what you learned to "fix" this packet:
+
+0000000: 4F 4B 41 59 xx xx xx xx 09 61 73 64 66 67 68 6A  OKAY.....asdfghj
+0000010: 6B 6C                                            kl
+
+Calculate the SHA-512 hash of the fixed packet and xor with the data below:
+
+0000000: F7 C0 D1 AE DF 02 F4 FD 19 BC 50 EA 74 18 74 D1  ..........P.t.t.
+0000010: D2 97 1B 7C 34 44 DE F1 05 B7 63 43 88 28 A0 66  ...|4D....cC.(.f
+0000020: EE 77 7B D3 51 99 96 6E BE 08 3A 40 AA 5B 81 03  .w{.Q..n..:@.[..
+0000030: 7C 2F 33 9C 93 7D FE AC C4 4F C2 49 55 76 BE B2  |/3..}...O.IUv..
+
+DO NOT TRANSMIT THIS PACKET TO THE SERVER! Network traffic is unencrypted,
+and you could help other teams get the flag. You don't want that, do you?
+
+(use `xxd -g 1 -u -r` to quickly turn these hexdumps back into binary)
+</pre>
+
+<p>Like it says, this is a final test to prevent against network capturing (after all, this is all over unencrypted TCP). By now, you know what’s going on, so I’ll breeze through this:</p>
+
+<pre class="prettyprint lang-sh">
+$ xxd -g 1 -u final-packet.bin
+0000000: 4F 4B 41 59 08 97 95 49 09 61 73 64 66 67 68 6A  OKAY...I.asdfghj
+0000010: 6B 6C                                            kl
+$ xxd -g 1 -u xor-bytes.bin
+0000000: F7 C0 D1 AE DF 02 F4 FD 19 BC 50 EA 74 18 74 D1  ..........P.t.t.
+0000010: D2 97 1B 7C 34 44 DE F1 05 B7 63 43 88 28 A0 66  ...|4D....cC.(.f
+0000020: EE 77 7B D3 51 99 96 6E BE 08 3A 40 AA 5B 81 03  .w{.Q..n..:@.[..
+0000030: 7C 2F 33 9C 93 7D FE AC C4 4F C2 49 55 76 BE B2  |/3..}...O.IUv..
+$ python3
+Python 3.4.0 (default, Apr 27 2014, 23:33:09)
+ [GCC 4.8.2 20140206 (prerelease)]  on linux
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; with open('final-packet.bin', 'rb') as f:
+...  packet = f.read()
+...
+&gt;&gt;&gt; import hashlib
+&gt;&gt;&gt; packet_hash = hashlib.sha512(packet).digest()
+&gt;&gt;&gt; with open('xor-bytes.bin', 'rb') as f:
+...  xor_bytes = f.read()
+...
+&gt;&gt;&gt; import operator
+&gt;&gt;&gt; bytes(map(operator.xor, packet_hash, xor_bytes))
+b'Not even the Valuan Empire can catch me!\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+</pre>
+
+<p>Finally. It’s done. It’s finished.</p>
+
+<p>Since you’ve made it this far, I’ll give you a little easter egg: <a href="http://d1verdiv3r.blogspot.com/2013/06/electricsheep-4.html">the password “itsherotime” is a flag from one of my previous challenges</a>.</p>
+
+<script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?lang=sh&amp;lang=python&amp;skin=sons-of-obsidian"></script>
+
+<script src="//platform.twitter.com/widgets.js" async="" charset="utf-8"></script>
+
+
+</div>
+
+<div class="col-sm-3">
+  <div class="well well-sm well-sidebar">
+    <h4>About</h4>
+    <p>I'm a programmer. I also enjoy reverse-engineering and I'm focused on information security. Hobbies include but are not limited to video games, laser tag, hardware hacking, comics, and Futurama. I live in the internet.
+</p>
+  </div>
+  <h4>Archives</h4>
+  <ul>
+    
+    <li><a href="/2014/05">May 2014</a></li>
+    
+    <li><a href="/2013/07">July 2013</a></li>
+    
+    <li><a href="/2013/06">June 2013</a></li>
+    
+  </ul>
+  <h4>Categories</h4>
+  <ul>
+    
+    <li><a href="/category/Uncategorized">Uncategorized</a></li>
+    
+    <li><a href="/category/Gaming">Gaming</a></li>
+    
+    <li><a href="/category/Power User">Power User</a></li>
+    
+    <li><a href="/category/Network Administration">Network Administration</a></li>
+    
+    <li><a href="/category/CTF">CTF</a></li>
+    
+    <li><a href="/category/webOS">webOS</a></li>
+    
+  </ul>
+  <h4>RSS Feeds</h4>
+  <ul>
+    <li><a href="/feed.xml">All posts</a></li>
+  </ul>
+  <h4>Meta</h4>
+  <ul>
+    <li><a href="/wp-login.php">DO NOT CLICK!</a></li>
+  </ul>
+</div>
+
+
+      </div>
+    </div>
+
+    <hr>
+
+<div class="container">
+  <div class="row footer">
+    &lt;/exocron&gt;
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

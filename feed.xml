@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>exocron</title>
+    <description>This is my blog. There are many like it, but this one is mine.</description>
+    <link>https://www.exocron.me/</link>
+    <atom:link href="https://www.exocron.me/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Sat, 23 Jul 2016 19:11:38 -0400</pubDate>
+    <lastBuildDate>Sat, 23 Jul 2016 19:11:38 -0400</lastBuildDate>
+    <generator>Jekyll v3.1.6</generator>
+    
+      <item>
+        <title>Open webOS Chronicles, Part 1: Building</title>
+        <description>&lt;p&gt;Open webOS Chronicles: The Horrors of Building, Installing, and Using Open webOS&lt;/p&gt;
+
+&lt;p&gt;Part 1: Building (Desktop and OpenEmbedded)&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;(Editor’s note: Just so you don’t think this series of posts is nothing but me whining about not being able to build Open webOS, let me tell you this: at this time, I have the emulator image running natively as a second partition on my laptop, and it’s semi-usable. Over the course of this series, I will try to describe every problem I encountered and how I was able to overcome it.)&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;It all started when I found my old HP TouchPad. Believing it to be bricked, I brought it into work where I thought we might be able to take it apart and JTAG it or otherwise mess around with the insides, only to see a co-worker using it after charging it for a day and a half. Needless to say, I started using it again, and quickly fell in love (again) with the iconic operating system, webOS.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/home.png&quot; alt=&quot;I&amp;rsquo;m sorry, my love. I&amp;rsquo;ll never leave you again, I swear!&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;In particular, one of my favorite apps is &lt;a href=&quot;http://www.webosnation.com/quick-app-flixi&quot;&gt;Flixi&lt;/a&gt;, an Exhibition app that lets you split the screen into different layouts and choose a feed for each cell. I don’t know who said it (it very well could have been me), but someone said, “This would be a cool app to run on a projector!” I then realized that, even though the TouchPad does not have TV output, I could possibly run the app on a build of Open webOS.&lt;/p&gt;
+
+&lt;p&gt;Thus, my journey of pain had begun.&lt;/p&gt;
+
+&lt;p&gt;At the time, my laptop was running the now outdated Ubuntu 13.04. With it’s support period over, I backed up all the data, wiped it clean, and installed Ubuntu 12.04 64-bit, as it’s listed &lt;a href=&quot;https://github.com/openwebos/build-desktop&quot;&gt;here&lt;/a&gt; as one of the supported build platforms.&lt;/p&gt;
+
+&lt;p&gt;Once installed, I decided to build the desktop version of Open webOS. (The desktop version runs inside of another linux distribution. The UI, apparently developed with Qt, runs inside of an X window.) I followed the instructions on the &lt;a href=&quot;https://github.com/openwebos/build-desktop&quot;&gt;README&lt;/a&gt; to the letter, and was excited to see the build succeed without errors! But, when I ran Luna, I was greeted with this window:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/64bit.png&quot; alt=&quot;...that&amp;rsquo;s it?&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Okay&lt;/em&gt;, I thought to my self, &lt;em&gt;the desktop build is obviously broken. Let’s try the OpenEmbedded one.&lt;/em&gt; So I followed the instructions on &lt;a href=&quot;https://github.com/openwebos/build-webos&quot;&gt;this page&lt;/a&gt; and started the build for the qemu image. This build process is like 2-3 times longer than the desktop one, so I ran it overnight. In the morning, I’m once again excited to see the build complete without errors. But when I go to run it, the guest immediately kernel panics. Great. But then I noticed something about the qemu command: it’s using &lt;a href=&quot;http://www.linux-kvm.org/page/Main_Page&quot;&gt;KVM&lt;/a&gt;. So, I removed the KVM option, and then the VM booted! But, once again, I am disappointed by services spewing endless logs of text, and no UI ever appearing.&lt;/p&gt;
+
+&lt;p&gt;After a good night’s sleep, I came up with a brilliant idea: &lt;em&gt;Why not try the 32-bit version of Ubuntu?&lt;/em&gt; In a perfect world, it shouldn’t matter if you’re building on a 32-bit host OS, or a 64-bit one. But, regardless, I decided to give it a try. So, after spending the day installing Ubuntu (again) and building for the desktop (again), I was pleasantly surprised to see everything render correctly.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/32bit.png&quot; alt=&quot;Schweet...&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;A sane person would probably stop here. But I decided that the titlebar and on-screen home button were too much. This had to be all or nothing. I decided that, if I could build the qemu image, I could probably tweak it to run on physical hardware and run it on a second partition on my laptop. So, I cloned the OpenEmbedded repository and started the build, but this time, I got an error:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+fatal: reference is not a tree: dea813980f4195503d82b8295f742a4da1df8d93
+&lt;/pre&gt;
+
+&lt;p&gt;So, it looks like one of the git submodules is not up to date. Google searching the hash finds two results (well, maybe three now :) ), both referring to the libpalmsocket library. Luckily, replacing the hash with the latest (at the time) master allowed the build to continue, and didn’t seem to have any side-effects on the final product:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ sed -i &#39;s/dea813980f4195503d82b8295f742a4da1df8d93/9533a7c46f8d35e69112a8c5e671532d059b2e8d/g&#39; meta-webos/recipes-webos/libpalmsocket/libpalmsocket.bb
+$ sed -i &#39;s/dea813980f4195503d82b8295f742a4da1df8d93/9533a7c46f8d35e69112a8c5e671532d059b2e8d/g&#39; buildhistory/packages/qemux86-webos-linux/libpalmsocket/latest_srcrev
+&lt;/pre&gt;
+
+&lt;p&gt;After that, there were no more errors, but once again, when I went to run the image, there was nothing but endless novacomd output.&lt;/p&gt;
+
+&lt;p&gt;In the next post, I’ll describe how I got the (not fully working) qemu image running on actual hardware, and how I logged in and started the graphical system. In the meantime, however, I’ll wonder why I didn’t just make a Flixi clone for HTML5.&lt;/p&gt;
+
+&lt;div class=&quot;comments&quot;&gt;
+&lt;h4&gt;Archived Comments:&lt;/h4&gt;
+&lt;hr /&gt;
+&lt;div class=&quot;media&quot;&gt;
+  &lt;div class=&quot;media-left&quot;&gt;
+    &lt;div class=&quot;media-object&quot;&gt;
+      &lt;img class=&quot;media-object&quot; src=&quot;https://1.gravatar.com/avatar/a17f5e77bdfeda5bcad2af8b96d8581c&quot; /&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;media-body&quot;&gt;
+    &lt;h4 class=&quot;media-heading&quot;&gt;Eric Blade&lt;/h4&gt;
+    &lt;p&gt;I, for one, would appreciate hearing about the problems, and the fixes if you have them. We might be able to get them incorporated. There may be some bit-rot there in the Open components, as the IRC #webOS-Ports team is working on a vastly different OE build system, and LG is spending a lot of time busily working on TV webOS...&lt;/p&gt;
+    &lt;div class=&quot;media&quot;&gt;
+      &lt;div class=&quot;media-left&quot;&gt;
+        &lt;img class=&quot;media-object&quot; src=&quot;https://pbs.twimg.com/profile_images/378800000305683428/6d7f194734287cd3997411ef51088842_400x400.jpeg&quot; /&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;media-body&quot;&gt;
+        &lt;h4 class=&quot;media-heading&quot;&gt;exocron&lt;/h4&gt;
+        &lt;p&gt;Sorry about the long response time, I don&amp;rsquo;t get around to checking comments ofter because they&amp;rsquo;re usually all spam. It&amp;rsquo;s great to hear from someone in the community. It&amp;rsquo;s been a busy couple of weeks, but I&amp;rsquo;ll try to get everything else written up soon. I think the biggest things were LunaSysMgr not starting up automatically for whatever reason (I just start it manually now), and not being able to log in as root from the console (I created another user in the root group and su to root). Everything else surfaced from trying to run the QEMU image on physical hardware, ex: I had to replace the kernel, and I had to remove the --connect-ip argument from novacomd, etc. But anyways, I&amp;rsquo;m rambling; I&amp;rsquo;ll try to have the problems and fixes up soon.&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?lang=sh&amp;amp;skin=sons-of-obsidian&quot;&gt;&lt;/script&gt;
+
+</description>
+        <pubDate>Fri, 09 May 2014 19:10:13 -0400</pubDate>
+        <link>https://www.exocron.me/2014/05/open-webos-chronicles-part-1-building/</link>
+        <guid isPermaLink="true">https://www.exocron.me/2014/05/open-webos-chronicles-part-1-building/</guid>
+        
+        
+        <category>webOS</category>
+        
+      </item>
+    
+      <item>
+        <title>BSides Chicago CTF 2014: Things You Find on the Internet</title>
+        <description>&lt;p&gt;I’ve been tasked with providing a writeup for this challenge, since nobody was able to solve it, it seems. The funny thing about CTF challenges is that they always turn out to be more difficult than anticipated (at least, in my experience). That could be a topic for a whole other blog post. But for now, the challenge.&lt;/p&gt;
+
+&lt;p&gt;At the end of BSides Chicago, I went up on stage and said, &lt;input id=&quot;spoiler1&quot; name=&quot;spoiler1&quot; type=&quot;radio&quot; class=&quot;hide&quot; /&gt;&lt;label for=&quot;spoiler1&quot; class=&quot;spoiler&quot;&gt;“the CRC of the entire data payload must be DEADBEEF”&lt;/label&gt;. If you would like to try the challenge again, with just that knowledge, you can grap the PCAP file &lt;a href=&quot;/assets/network.pcap&quot;&gt;here&lt;/a&gt;. The server is still up, for now, but I may kill it if it starts to cost me too much money (in other words, do it sooner rather than later). If you are going to take another stab at it, you should probably stop reading…now.&lt;/p&gt;
+
+&lt;p&gt;Okay, so you’ve resigned yourself to defeat, and want to see the answer :P (I kid, I kid). I’ll be writing this walkthrough in a player point-of-view, as opposed to an author point-of-view. So without further ado, let’s get to the challenge!&lt;/p&gt;
+
+&lt;h3 id=&quot;the-challenge&quot;&gt;The Challenge&lt;/h3&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;BEGIN TRANSMISSION&lt;/p&gt;
+
+  &lt;p&gt;TARGET: Unknown
+LOCATION: Unknown ()&lt;/p&gt;
+
+  &lt;p&gt;DETAILS:&lt;/p&gt;
+
+  &lt;p&gt;We have received the attached pcap file from an unknown source. We are not sure if we should trust this, but what the heck. We are just like Q who put a hackers laptop on their primary network.&lt;/p&gt;
+
+  &lt;p&gt;We need you to analyze the traffic and infiltrate the server. You may need to strip some null bytes off of any information you gather.&lt;/p&gt;
+
+  &lt;p&gt;This will not be a flag=. You will know the flag when you see it.&lt;/p&gt;
+
+  &lt;p&gt;The file is attached.&lt;/p&gt;
+
+  &lt;p&gt;Good luck agent!&lt;/p&gt;
+
+  &lt;p&gt;END TRANSMISSION&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://bsjtf.com/download.php?id=25&quot;&gt;File&lt;/a&gt; (&lt;a href=&quot;/assets/network.pcap&quot;&gt;mirror&lt;/a&gt;)&lt;/p&gt;
+
+&lt;p&gt;The file is a packet capture of a TCP session where a computer with a Class C private IP connects to 166.78.113.11 port 1337. Here is a hexdump of the entire conversation:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/shot-2014-05-04_20-46-03.png&quot; alt=&quot;That&amp;rsquo;s...not my real password...*runs to nearest computer*&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Wireshark doesn’t detect any application layer protocols, so it’s safe to assume this is a proprietary protocol created just for the challenge. Based on this dump, this communication appears to be packet based, where each outgoing packet is structured like so:&lt;/p&gt;
+
+&lt;div class=&quot;well well-sm&quot; style=&quot;margin-bottom: 10px;&quot;&gt;
+4 bytes (verb) || 4 bytes (unknown) || &lt;a href=&quot;http://en.wikipedia.org/wiki/Pascal_string#Length-prefixed&quot;&gt;Pascal string&lt;/a&gt; (argument)
+&lt;/div&gt;
+
+&lt;p&gt;and each incoming packet is similar (though some have slight differences).&lt;/p&gt;
+
+&lt;p&gt;At this point, I have saved the contents of the four outgoing packets into files named packet1.bin through packet4.bin. Also, I found that netcat works perfectly fine when sending one packet, but when trying to send all four, I could only see the response from the first one:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ cat packet1.bin | nc -q -1 166.78.113.11 1337 | xxd -g 1 -u
+0000000: 4F 4B 41 59 81 BA 0D 63 46 41 49 4C 80 A2 6C 66  OKAY...cFAIL..lf
+0000010: 07 54 69 6D 65 6F 75 74                          .Timeout
+$ cat packet1.bin packet2.bin packet3.bin packet4.bin | nc -q -1 166.78.113.11 1337 | xxd -g 1 -u
+0000000: 4F 4B 41 59 81 BA 0D 63 46 41 49 4C 80 A2 6C 66  OKAY...cFAIL..lf
+0000010: 07 54 69 6D 65 6F 75 74                          .Timeout
+&lt;/pre&gt;
+
+&lt;p&gt;I coded up a simple Python script that could send packets via Python’s &lt;a href=&quot;https://twistedmatrix.com/trac/&quot;&gt;Twisted&lt;/a&gt; library:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint linenums lang-python&quot;&gt;
+from twisted.internet import protocol, reactor
+from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
+from twisted.internet.error import ReactorNotRunning
+import sys
+
+class Client(protocol.Protocol):
+    def sendMessage(self, msg):
+        print &quot;Sent data: %s&quot; % repr(msg)
+        self.transport.write(msg)
+
+    def dataReceived(self, data):
+        print &quot;Received data: %s&quot; % repr(data)
+
+    def connectionLost(self, reason):
+        try:
+            reactor.stop()
+            print &quot;Connection closed by remote host.&quot;
+        except ReactorNotRunning:
+            print &quot;Interrupt caught. Closing connection...&quot;
+            pass
+
+def gotProtocol(p):
+    args = sys.argv [1:] 
+    for i in xrange(len(args)):
+        with open(args [i] , &quot;rb&quot;) as f:
+            reactor.callLater(i, p.sendMessage, f.read())
+
+endpoint = TCP4ClientEndpoint(reactor, &quot;166.78.113.11&quot;, 1337)
+d = connectProtocol(endpoint, Client())
+d.addCallback(gotProtocol)
+reactor.run()
+&lt;/pre&gt;
+
+&lt;p&gt;which I can invoke like this:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ python2 client.py packet1.bin packet2.bin packet3.bin packet4.bin
+Sent data: &#39;USER-\xb8\x14Z\x07exocron&#39;
+Received data: &#39;OKAY\x81\xba\rc&#39;
+Sent data: &#39;PASS\x80\xc2\xecP\x0bitsherotime&#39;
+Received data: &#39;OKAY\x81\xba\rc&#39;
+Sent data: &#39;LIST\x98rm\xbf\x01/&#39;
+Received data: &#39;OKAY\x14\xb69\xfd\x02\x07key.txt\x10stuff i like.txt&#39;
+Sent data: &#39;READ\xcb\x9d\x81\xbb\x10stuff i like.txt&#39;
+Received data: &#39;OKAY\xca\xa1\xaf\xa4UStuff I Like:\n* Programming\n* InfoSec (of course!)\n* Video Games\n* Laser Tag\n* Anime\n&#39;
+Received data: &#39;FAIL\x80\xa2lf\x07Timeout&#39;
+Connection closed by remote host.
+&lt;/pre&gt;
+
+&lt;p&gt;Much better. Now we can move on.&lt;/p&gt;
+
+&lt;h3 id=&quot;keytxt&quot;&gt;key.txt&lt;/h3&gt;
+
+&lt;p&gt;You probably already noticed, but in the third server response, we can see two filenames: “stuff i like.txt” and “key.txt”. (In)conveniently enough, the packet capture shows the contents of “stuff i like.txt”. Since we already replayed the capture, now’s the time to start fuzzing. I simply modified the contents of packet4.bin with a hex editor, the results of which you can see here:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ xxd -g 1 -u packet4.bin
+0000000: 52 45 41 44 CB 9D 81 BB 10 73 74 75 66 66 20 69  READ.....stuff i
+0000010: 20 6C 69 6B 65 2E 74 78 74                        like.txt
+$ hexedit packet4.bin
+$ xxd -g 1 -u packet4.bin
+0000000: 52 45 41 44 CB 9D 81 BB 07 6B 65 79 2E 74 78 74  READ.....key.txt
+&lt;/pre&gt;
+
+&lt;p&gt;Running the Python script again results in this:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ python2 client2.py packet1.bin packet2.bin packet3.bin packet4.bin
+Sent data: &#39;USER-\xb8\x14Z\x07exocron&#39;
+Received data: &#39;OKAY\x81\xba\rc&#39;
+Sent data: &#39;PASS\x80\xc2\xecP\x0bitsherotime&#39;
+Received data: &#39;OKAY\x81\xba\rc&#39;
+Sent data: &#39;LIST\x98rm\xbf\x01/&#39;
+Received data: &#39;OKAY\x14\xb69\xfd\x02\x07key.txt\x10stuff i like.txt&#39;
+Sent data: &#39;READ\xcb\x9d\x81\xbb\x07key.txt&#39;
+Received data: &#39;FAIL\x81vG*\rIncorrect CRC&#39;
+Connection closed by remote host.
+&lt;/pre&gt;
+
+&lt;p&gt;Aha! Incorrect CRC! That gives us a meaning to the four unknown bytes in the packet. But wait…those bytes don’t look like the CRC32 of any combination of the data before and after it. Also, a CRC doesn’t normally go in the middle of a packet.&lt;/p&gt;
+
+&lt;h3 id=&quot;incorrect-crc&quot;&gt;Incorrect CRC&lt;/h3&gt;
+
+&lt;blockquote class=&quot;twitter-tweet&quot; lang=&quot;en&quot;&gt;&lt;p&gt; CRC Forging is neat. Interesting tools out there.  &lt;a href=&quot;https://twitter.com/search?q=%23tricityctf&amp;#038;src=hash&quot;&gt; #tricityctf &lt;/a&gt;   &lt;a href=&quot;https://twitter.com/search?q=%23BSidesChicago&amp;#038;src=hash&quot;&gt; #BSidesChicago &lt;/a&gt; &lt;/p&gt;
+&lt;p&gt; Joint Task Force (@bsjtf)  &lt;a href=&quot;https://twitter.com/bsjtf/statuses/460171277303824384&quot;&gt; April 26, 2014 &lt;/a&gt;  &lt;/p&gt;&lt;/blockquote&gt;
+&lt;blockquote class=&quot;twitter-tweet&quot; lang=&quot;en&quot;&gt;&lt;p&gt; CRC all the things!&lt;/p&gt;
+&lt;p&gt; Joint Task Force (@bsjtf)  &lt;a href=&quot;https://twitter.com/bsjtf/statuses/460182831101009920&quot;&gt; April 26, 2014 &lt;/a&gt;  &lt;/p&gt;&lt;/blockquote&gt;
+&lt;blockquote class=&quot;twitter-tweet&quot; lang=&quot;en&quot;&gt;&lt;p&gt; CRC is standard CRC32&amp;#8230;&lt;/p&gt;
+&lt;p&gt; Joint Task Force (@bsjtf)  &lt;a href=&quot;https://twitter.com/bsjtf/statuses/460188006079422464&quot;&gt; April 26, 2014 &lt;/a&gt;  &lt;/p&gt;&lt;/blockquote&gt;
+
+&lt;p&gt;According to the hints, we aren’t dealing with anything too severe like custom polynomials. And the first search result for “CRC forging” is &lt;a href=&quot;http://blog.stalkr.net/2011/03/crc-32-forging.html&quot;&gt;this page&lt;/a&gt;, which opens with the text, “You may already know that the CRC-32 of any text can be forged if you can add 4 bytes anywhere in the text.” That’s exactly what we have, four unknown bytes between the action and the argument! So perhaps the CRC being checked is the CRC of the entire payload (“CRC all the things!”):&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-python&quot;&gt;
+$ cat checkcrc.py
+import sys, zlib
+
+for x in sys.argv [1:] :
+        with open(x, &quot;rb&quot;) as f:
+                print(hex(zlib.crc32(f.read())))
+$ python3 checkcrc.py packet1.bin packet2.bin packet3.bin packet4.bin
+0xdeadbeef
+0xdeadbeef
+0xdeadbeef
+0x87eb2127
+&lt;/pre&gt;
+
+&lt;p&gt;There we go. The CRC of the first three packets is DEADBEEF. The fourth packet’s CRC is now incorrect, and needs to be fixed. With the script from StalkR’s blog saved to “crc32.py”, we can import and use it like so:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-python&quot;&gt;
+$ python2
+Python 2.7.6 (default, Feb 26 2014, 12:07:17)
+ [GCC 4.8.2 20140206 (prerelease)]  on linux2
+Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
+&amp;gt;&amp;gt;&amp;gt; import crc32
+&amp;gt;&amp;gt;&amp;gt; crc32.forge(0xdeadbeef, &quot;READ\x07key.txt&quot;, 4)
+&#39;READ,\xda\xe1\xe8\x07key.txt&#39;
+&lt;/pre&gt;
+
+&lt;p&gt;The bytes we need are 2C DA E1 E8. After hex-editing the final packet:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ xxd -g 1 -u packet4.bin
+0000000: 52 45 41 44 2C DA E1 E8 07 6B 65 79 2E 74 78 74  READ,....key.txt
+$ python2 client.py packet1.bin packet2.bin packet3.bin packet4.bin
+Sent data: &#39;USER-\xb8\x14Z\x07exocron&#39;
+Received data: &#39;OKAY\x81\xba\rc&#39;
+Sent data: &#39;PASS\x80\xc2\xecP\x0bitsherotime&#39;
+Received data: &#39;OKAY\x81\xba\rc&#39;
+Sent data: &#39;LIST\x98rm\xbf\x01/&#39;
+Received data: &#39;OKAY\x14\xb69\xfd\x02\x07key.txt\x10stuff i like.txt&#39;
+Sent data: &#39;READ,\xda\xe1\xe8\x07key.txt&#39;
+Received data: &#39;OKAY\x91\xdfl\xb9\x1dhttp://pastebin.com/iX94M2VV\n&#39;
+Received data: &#39;FAIL\x80\xa2lf\x07Timeout&#39;
+Connection closed by remote host.
+&lt;/pre&gt;
+
+&lt;h3 id=&quot;pastebin&quot;&gt;Pastebin&lt;/h3&gt;
+
+&lt;p&gt;The &lt;a href=&quot;http://pastebin.com/iX94M2VV&quot;&gt;pastebin URL&lt;/a&gt; contains these contents:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+Ghetto Anti-Network Capture Protection:
+
+Use what you learned to &quot;fix&quot; this packet:
+
+0000000: 4F 4B 41 59 xx xx xx xx 09 61 73 64 66 67 68 6A  OKAY.....asdfghj
+0000010: 6B 6C                                            kl
+
+Calculate the SHA-512 hash of the fixed packet and xor with the data below:
+
+0000000: F7 C0 D1 AE DF 02 F4 FD 19 BC 50 EA 74 18 74 D1  ..........P.t.t.
+0000010: D2 97 1B 7C 34 44 DE F1 05 B7 63 43 88 28 A0 66  ...|4D....cC.(.f
+0000020: EE 77 7B D3 51 99 96 6E BE 08 3A 40 AA 5B 81 03  .w{.Q..n..:@.[..
+0000030: 7C 2F 33 9C 93 7D FE AC C4 4F C2 49 55 76 BE B2  |/3..}...O.IUv..
+
+DO NOT TRANSMIT THIS PACKET TO THE SERVER! Network traffic is unencrypted,
+and you could help other teams get the flag. You don&#39;t want that, do you?
+
+(use `xxd -g 1 -u -r` to quickly turn these hexdumps back into binary)
+&lt;/pre&gt;
+
+&lt;p&gt;Like it says, this is a final test to prevent against network capturing (after all, this is all over unencrypted TCP). By now, you know what’s going on, so I’ll breeze through this:&lt;/p&gt;
+
+&lt;pre class=&quot;prettyprint lang-sh&quot;&gt;
+$ xxd -g 1 -u final-packet.bin
+0000000: 4F 4B 41 59 08 97 95 49 09 61 73 64 66 67 68 6A  OKAY...I.asdfghj
+0000010: 6B 6C                                            kl
+$ xxd -g 1 -u xor-bytes.bin
+0000000: F7 C0 D1 AE DF 02 F4 FD 19 BC 50 EA 74 18 74 D1  ..........P.t.t.
+0000010: D2 97 1B 7C 34 44 DE F1 05 B7 63 43 88 28 A0 66  ...|4D....cC.(.f
+0000020: EE 77 7B D3 51 99 96 6E BE 08 3A 40 AA 5B 81 03  .w{.Q..n..:@.[..
+0000030: 7C 2F 33 9C 93 7D FE AC C4 4F C2 49 55 76 BE B2  |/3..}...O.IUv..
+$ python3
+Python 3.4.0 (default, Apr 27 2014, 23:33:09)
+ [GCC 4.8.2 20140206 (prerelease)]  on linux
+Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
+&amp;gt;&amp;gt;&amp;gt; with open(&#39;final-packet.bin&#39;, &#39;rb&#39;) as f:
+...  packet = f.read()
+...
+&amp;gt;&amp;gt;&amp;gt; import hashlib
+&amp;gt;&amp;gt;&amp;gt; packet_hash = hashlib.sha512(packet).digest()
+&amp;gt;&amp;gt;&amp;gt; with open(&#39;xor-bytes.bin&#39;, &#39;rb&#39;) as f:
+...  xor_bytes = f.read()
+...
+&amp;gt;&amp;gt;&amp;gt; import operator
+&amp;gt;&amp;gt;&amp;gt; bytes(map(operator.xor, packet_hash, xor_bytes))
+b&#39;Not even the Valuan Empire can catch me!\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00&#39;
+&lt;/pre&gt;
+
+&lt;p&gt;Finally. It’s done. It’s finished.&lt;/p&gt;
+
+&lt;p&gt;Since you’ve made it this far, I’ll give you a little easter egg: &lt;a href=&quot;http://d1verdiv3r.blogspot.com/2013/06/electricsheep-4.html&quot;&gt;the password “itsherotime” is a flag from one of my previous challenges&lt;/a&gt;.&lt;/p&gt;
+
+&lt;script src=&quot;https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?lang=sh&amp;amp;lang=python&amp;amp;skin=sons-of-obsidian&quot;&gt;&lt;/script&gt;
+
+&lt;script src=&quot;//platform.twitter.com/widgets.js&quot; async=&quot;&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;
+
+</description>
+        <pubDate>Mon, 05 May 2014 04:31:19 -0400</pubDate>
+        <link>https://www.exocron.me/2014/05/bsides-chicago-ctf-2014-things-you-find-on-the-internet/</link>
+        <guid isPermaLink="true">https://www.exocron.me/2014/05/bsides-chicago-ctf-2014-things-you-find-on-the-internet/</guid>
+        
+        
+        <category>CTF</category>
+        
+      </item>
+    
+      <item>
+        <title>Windows, Y U NO RESOLVE DNS</title>
+        <description>&lt;p&gt;This past weekend, I had some time to kill, so I decided to augment my DHCP server with a little DNS. I had been using a dedicated DHCP server for a while, just for kicks (and for learning dhcpd). A few of my machines already had fixed addresses in the dhcpd.conf for ease of access, so I thought the next step would be to add DNS entries. After all, nothing says awesome like typing “ssh laptop” and it working.&lt;/p&gt;
+
+&lt;p&gt;Fortunately, bind9’s default configuration (on Debian) forwards DNS requests for non-authoritative zones by default, so fifteen-minutes and a few whiskey sours later (if you can understand that config file format &lt;em&gt;without&lt;/em&gt; a few drinks in you, you’re amazing), I had the configuration worked out and was resolving local network host names like a pro. I ssh’d into all of my servers, and life was good.&lt;/p&gt;
+
+&lt;p&gt;Until I booted Windows.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/ping-redbase.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ugh. What is going on?&lt;/p&gt;
+
+&lt;p&gt;I fired up nslookup and typed in “redbase”. It couldn’t find the IP address. Remembering what little I know about FQDN’s, I then tried “redbase.” (with the period). Sure enough, it worked.&lt;/p&gt;
+
+&lt;p&gt;This is kind of strange since “ping redbase” and “nslookup redbase” worked in Linux, without the dot. Well, ipconfig says that my connection-specific DNS suffix is example.org (lol). On a hunch, I fired up Wireshark.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/redbase.example.org_.png&quot; alt=&quot;Well, lookey here...&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Sure enough, “nslookup redbase” causes Windows to try and resolve redbase.example.org. Maybe this is a good thing, I don’t know. From what I read online, the desired behavior is for a client to try “redbase.” first, then try “redbase.example.org.”. I guess Windows assumes that there won’t be any single-label DNS entries, although there doesn’t appear to be a rule against them. Typical nonstandard behavior. There’s a group policy behavior called “Allow DNS Suffix Appending to Unqualified Multi-Label Name Queries” (could that name be any longer?) that allows you to disable appending the connection-specific DNS, but I’m running Home Premium, so I don’t have Group Policy Editor. Figures. I found this &lt;a href=&quot;http://gpsearch.azurewebsites.net/&quot;&gt;awesome site&lt;/a&gt; that converts group policies to registry keys; in this case, the key is “HKLM\Software\Policies\Microsoft\Windows NT\DNSClient” (UseDomainNameDevolution: DWORD). There’s only one problem: it doesn’t work. I chalked this up as caused by Home Premium as well.&lt;/p&gt;
+
+&lt;p&gt;So, for my final straw, I opened up dhcpd.conf and changed the connection-specific DNS from “example.org” to “.”. I renewed my DHCP, and sure enough…&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/nslookup-redbase.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Yes. Finally. Now, a final ping to put the nail in the coffin.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/ping-redbase-2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;What? WHAT?!?! No. What is this, I don’t even. Go go Wireshark!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/llmnr.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Okay, so apparently ping, my web browser, and practically everything else only tries to resolve a LLMNR request. It doesn’t even &lt;em&gt;try&lt;/em&gt; DNS! What the heck is up with that?&lt;/p&gt;
+
+&lt;p&gt;Interestingly enough, though, while msys SSH didn’t work at all when my suffix was example.org, it’s totally working now for “redbase”, even without the period. What the heck.&lt;/p&gt;
+
+&lt;p&gt;Windows can’t DNS. Well.&lt;/p&gt;
+</description>
+        <pubDate>Tue, 23 Jul 2013 02:39:49 -0400</pubDate>
+        <link>https://www.exocron.me/2013/07/windows-y-u-no-resolve-dns/</link>
+        <guid isPermaLink="true">https://www.exocron.me/2013/07/windows-y-u-no-resolve-dns/</guid>
+        
+        
+        <category>Network Administration</category>
+        
+      </item>
+    
+      <item>
+        <title>Make Your Terminal More Awesome With Tmux</title>
+        <description>&lt;p&gt;I was looking at my terminal this morning, and I was thinking, “Man, there has got to be something I can do to make this more awesome.” For some strange reason, I thought of making every terminal window I open start with tmux. This would give me a nice statusbar on each window with the date and time, and even allow me to split my terminal windows (usually I only want to split windows &lt;em&gt;after&lt;/em&gt; I have started a long-running command, and I don’t already have tmux running).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/terminal.png&quot; alt=&quot;Ooh...shiny green statusbar...&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Anyways, after adding tmux to my bashrc, I came across some info (from the &lt;a href=&quot;https://wiki.archlinux.org/index.php/Tmux&quot;&gt;ArchWiki&lt;/a&gt;) on how you can share your tmux session across all of your open terminals. All I can say is, &lt;strong&gt;wow&lt;/strong&gt;. I’ve adopted these scripts for my Xubuntu system, although it probably works without much modification for a host of distributions and terminal emulators.&lt;/p&gt;
+
+&lt;p&gt;Add this to the end of your .bashrc:&lt;/p&gt;
+&lt;pre class=&quot;prettyprint linenums lang-sh&quot;&gt;
+# If not running interactively, do not do anything
+[[ $- != *i* ] ] &amp;amp;&amp;amp; return
+# If we&#39;re inside of tmux, do not do anything
+[[ ! -z &quot;$TMUX&quot; ] ] &amp;amp;&amp;amp; return
+
+# Check if tmux session already exists
+if tmux has-session -t &quot;bashrc&quot;
+then
+	# Attach new session to the existing session, and create a new window.
+	# This has the effect of all bash windows being attached to the
+	# same tmux session, even if they are viewing different windows
+	# inside the session.
+	CLIENTID=`date +%s`
+	exec tmux new-session -d -t &quot;bashrc&quot; -s $CLIENTID \; set-option destroy-unattached \; new-window \; attach-session -t $CLIENTID
+else
+	# Create new tmux session and attach to it.
+	exec tmux new-session -s &quot;bashrc&quot;
+fi
+&lt;/pre&gt;
+
+&lt;p&gt;After adding this to my .bashrc, subsequent terminal windows would be opened to a new window in tmux, but would also have access to all older windows. In addition, other terminal emulators that I’ve already opened have access to the new window. Windows also open in the correct directory if I right-click a thunar window and click “Open Terminal Here”.&lt;/p&gt;
+
+&lt;p&gt;Also, here’s a short video:&lt;/p&gt;
+
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;//www.youtube.com/embed/ZWvsaxJFpu8&quot; frameborder=&quot;0&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;
+
+&lt;script src=&quot;https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?lang=sh&amp;amp;skin=sons-of-obsidian&quot;&gt;&lt;/script&gt;
+
+</description>
+        <pubDate>Fri, 05 Jul 2013 02:40:20 -0400</pubDate>
+        <link>https://www.exocron.me/2013/07/make-your-terminal-more-awesome-with-tmux/</link>
+        <guid isPermaLink="true">https://www.exocron.me/2013/07/make-your-terminal-more-awesome-with-tmux/</guid>
+        
+        
+        <category>Power User</category>
+        
+      </item>
+    
+      <item>
+        <title>My Thoughts on PS4/Xbox One/DRM</title>
+        <description>&lt;p&gt;Well, I needed a break from massive amounts of cramming, so I thought I’d rant a little about what happened at E3, and how people reacted to it. This is really just a way of replying to many of the opinions I’ve seen on the internet over the past few days, and why I think they’re wrong. Let’s start with this:&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“Sony’s awesome for not forcing DRM and for listening to their customers.”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;You’re fooling yourself if you think that Sony’s original plan was to not use DRM. Seriously. After how bad the PS3 got hacked, I’m surprised they actually were willing to go no-DRM at all. I’m assuming that was in reaction to the negative response of the Xbox One.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“Well, Sony’s just better than Micro$oft anyways!”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Seriously! Are we talking about the same Sony? The same Sony that pushed for Blu-Ray discs to &lt;a href=&quot;http://web.archive.org/web/20090220110917/http://www.videobusiness.com/article/CA6283697.html&quot;&gt;not work on more than one player&lt;/a&gt;? The same Sony that sued a homebrewer (not a pirate, not a PSN hacker) for &lt;a href=&quot;http://en.wikipedia.org/wiki/George_Hotz#Hacking_the_PlayStation_3&quot;&gt;gaining “unauthorized access” to hardware they bought&lt;/a&gt;? The same Sony that puts &lt;a href=&quot;https://www.google.com/#q=sony+bmg+rootkit&quot;&gt;rootkits in their CDs just to make sure people don’t copy them&lt;/a&gt;? Sure, Microsoft has done some bad things, but Sony’s no saint. Ultimately, they’re both out there to make money, and they’ll do whatever it takes to do just that.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“It doesn’t matter what their reason was, no-DRM is better.”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Fine.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“Xbox One did a 180, but I’m still not buying it.”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Fine…wait, what? If it doesn’t matter what Sony’s reason for going no-DRM was, then why should it matter what Microsoft’s reason was? Microsoft already said they’d remove the DRM, but that’s not good enough, the damage is done. Meanwhile, it’s obvious that Sony’s no-DRM announcement was in direct response to Microsoft, but somehow &lt;em&gt;that’s&lt;/em&gt; different?&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“We don’t know what Microsoft could do. They might add it back in later with an update!”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;True, but not without some massive lawsuits. Meanwhile, let’s not presume what companies might do, but instead look at what companies have &lt;em&gt;already&lt;/em&gt; done: Sony removed the PlayStation 2 emulation and OtherOS features from the PS3. There was a bait-and-switch lawsuit over that last one (I don’t know what the outcome was), but the point is that crippling updates is a Sony move. Seriously, I wouldn’t be surprised if PS4 was the one that added always-on DRM with an update. Let’s see all you Sony fanboys cry then.&lt;/p&gt;
+
+&lt;p&gt;By the way, I don’t consider myself any kind of a fanboy; I look at all platforms equally and try to make a logical decision on which one I want. Sure, I use my past experiences to help, but they don’t totally define what I’m going to do. I was just as pissed at Microsoft when they announced their platform’s DRM as anybody else (and I was not planning on buying an Xbox One anytime soon), but now that it’s done and over with, I don’t hold it against them. As a company, they have to look for new ways to make money; that’s how they stay alive. Which brings me to another point:&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“Xbox One’s greatest feature was it’s DRM. Now that that’s gone, it’s ruined.”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Maybe. But let me present you with a case study: say hello to…the Xbox one!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/Xbox-Console-Set2.png&quot; alt=&quot;Oh, THAT Xbox one.&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;You can say that sharing games with people on your friends list, buying used games in downloadable form, and not having to use physical discs that you bought makes the DRM worth it, but years down the line, when the next console is well into it’s life, Microsoft can kill the switch on the Xbox One. Why not? They already did it with the original Xbox. If the original Xbox had the level of DRM that the Xbox One would’ve had, then I wouldn’t be able to host Halo 2 LAN parties (something that I did quite recently actually). In fact, I wouldn’t be able to use the console at all, because it would be unable to check-in to Microsoft.&lt;/p&gt;
+
+&lt;p&gt;So, is DRM worth not being able to play hundreds of dollars worth of games ten years down the road? I, for one, think not.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 23 Jun 2013 18:22:26 -0400</pubDate>
+        <link>https://www.exocron.me/2013/06/my-thoughts-on-ps4-xbox-one-drm/</link>
+        <guid isPermaLink="true">https://www.exocron.me/2013/06/my-thoughts-on-ps4-xbox-one-drm/</guid>
+        
+        
+        <category>Gaming</category>
+        
+      </item>
+    
+      <item>
+        <title>Hello World!</title>
+        <description>&lt;p&gt;Woo hoo! Finally. Feels like it took all day to get this hosting set up. Oh wait, it did…&lt;/p&gt;
+
+&lt;p&gt;Now I just need to get SSL up in here before I get owned.&lt;/p&gt;
+</description>
+        <pubDate>Tue, 11 Jun 2013 03:08:16 -0400</pubDate>
+        <link>https://www.exocron.me/2013/06/hello-world/</link>
+        <guid isPermaLink="true">https://www.exocron.me/2013/06/hello-world/</guid>
+        
+        
+        <category>Uncategorized</category>
+        
+      </item>
+    
+  </channel>
+</rss>
